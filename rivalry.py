@@ -1,11 +1,9 @@
 from psychopy import core, visual, event, monitors, gui, data
-from psychopy.iohub import launchHubServer  # for parallel key collection
 from datetime import datetime
 import random  # random for randomisation
 import numpy as np  # for array handling
 import os
 import os.path
-import csv
 
 # Stimulus Parameters
 trialdur = 5.0  # trial duration in seconds
