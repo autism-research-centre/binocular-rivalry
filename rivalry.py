@@ -6,8 +6,10 @@ import os
 import os.path
 
 # Stimulus Parameters
-trialdur = 5.0  # trial duration in seconds
-breakdur = 5.0  # minimum duration of a break in seconds
+trialdur = 8.0  # trial duration in seconds
+breakdur = 4.0  # minimum duration of a break in seconds
+
+totaltrials = 4
 
 stimsize = 8  # size of stimuli in deg of visual angle
 repetitions = 1  # how many trials per condition
@@ -211,20 +213,13 @@ def rivaltrial(info):
     backreport.text = ''
     win.flip()
 
-    # Save the trial info:
-    # w = csv.DictWriter(open(datadir +
-    #                         'trial-%03d-info.csv' %
-    #                         trials.thisN, 'w+'),
-    #                    info.keys())
-    # w.writeheader()
-    # w.writerow(info)
-    # # Save the data:
-    # np.savetxt(datadir + 'trial-%03d-data.csv' % trials.thisN,
-    #            np.hstack([timeArray, keyArray, stimsequence]), fmt='%3.5f',
-    #            delimiter=', ',
-    #            header=', '.join(['time'] +
-    #                             responses.values() +
-    #                             ['simulationsequence']))
+    # force first key to be mix
+    keyArray[0, :] = np.array([0, 1, 0])
+    # find all rows that are zero
+    notblanks = np.any(keyArray, axis=1)
+    # remove them
+    keyArray = keyArray[notblanks, :]
+    timeArray = timeArray[notblanks, :]
 
     # return the two arrays
     return keyArray, timeArray
@@ -291,11 +286,43 @@ trials = data.TrialHandler(
 # os.makedirs(datadir)
 
 # Loop through trials:
+keylists = []
+timelists = []
+
 for trial in trials:
-    rivaltrial(trial)
+    keys, times = rivaltrial(trial)
+    keylists.append(keys)
+    timelists.append(times)
+    print(keys)
     # Take a break (not on last)
-    if trials.thisN < trials.nTotal:
+    if trials.thisN < totaltrials - 1:
         rivalbreak()
+    else:
+        break
+
+# work out the average mix percept
+mixpercepts = []
+for times, keys in zip(timelists, keylists):
+    durations = np.diff(np.concatenate(
+        (times.flatten(), np.zeros(1) + trialdur)
+    ))
+    durations = durations[keys[:, 1] == 1]
+    for dur in durations:
+        mixpercepts.append(dur)
+
+print(keylists)
+print(timelists)
+print(mixpercepts)
+avmix = np.mean(mixpercepts)
+
+message.text = ("Nice work, thanks for taking part!\n\n"
+                "The average time you saw the mixed percept for was \n" +
+                str(round(avmix, 1)) + " seconds. Let the experimenters know!"
+                "\n\nPress any key to finish.")
+message.draw()
+win.flip()
+core.wait(2)
+event.waitKeys()
 
 # Close everything neatly
 win.close()
